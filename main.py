@@ -1,28 +1,33 @@
-# app.py
 from flask import Flask, request, render_template_string
-import sqlite3
+from flask_sqlalchemy import SQLAlchemy
 
 app = Flask(__name__)
+app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///:memory:'
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+db = SQLAlchemy(app)
 
-def get_db_connection():
-    conn = sqlite3.connect(':memory:') 
-    conn.execute('CREATE TABLE IF NOT EXISTS entries (name TEXT, age INTEGER)')
-    return conn
+class Entry(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(50))
+    age = db.Column(db.Integer)
+
+db.create_all()
 
 @app.route('/', methods=['GET', 'POST'])
 def form_example():
-    conn = get_db_connection()
     if request.method == 'POST':
         name = request.form['name']
         age = request.form['age']
 
-        conn.execute('INSERT INTO entries (name, age) VALUES (?, ?)', (name, age))
-        conn.commit()
+        if not name or not age.isdigit():
+            return "Invalid input.", 400
 
-        return '''<h1>Entry added:</h1>
-                  <h2>Name: {}</h2>
-                  <h2>Age: {}</h2>'''.format(name, age)
-    conn.close()
+        new_entry = Entry(name=name, age=int(age))
+        db.session.add(new_entry)
+        db.session.commit()
+
+        return 'Entry added: Name: {}, Age: {}'.format(name, age)
+
     return '''<form method="POST">
                   Name: <input type="text" name="name"><br>
                   Age: <input type="text" name="age"><br>

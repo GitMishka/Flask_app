@@ -11,7 +11,8 @@ class Entry(db.Model):
     name = db.Column(db.String(50))
     age = db.Column(db.Integer)
 
-db.create_all()
+with app.app_context():
+    db.create_all()
 
 @app.route('/', methods=['GET', 'POST'])
 def form_example():
